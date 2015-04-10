@@ -4,6 +4,7 @@
 package com.oguzdev.circularfloatingactionmenu.library;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Context;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
@@ -192,6 +193,9 @@ public class FloatingActionMenu {
                 }
                 addViewToCurrentContainer(subActionItems.get(i).view, params);
             }
+
+            getActivityContentView().invalidate();
+            getActivityContentView().requestLayout();
             // Tell the current MenuAnimationHandler to animate from the center
             animationHandler.animateMenuOpening(center);
         }
@@ -239,7 +243,8 @@ public class FloatingActionMenu {
         else {
             // If animations are disabled, just detach each of the Item views from the Activity content view.
             for (int i = 0; i < subActionItems.size(); i++) {
-                removeViewFromCurrentContainer(subActionItems.get(i).view);
+                Item item = subActionItems.get(i);
+                ((ViewGroup) getActivityContentView()).removeView(item.view);
             }
             detachOverlayContainer();
         }
@@ -296,9 +301,12 @@ public class FloatingActionMenu {
         // Simply update layout params for each item
         for (int i = 0; i < subActionItems.size(); i++) {
             // This is currently done by giving them large margins
-            final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(subActionItems.get(i).width, subActionItems.get(i).height, Gravity.TOP | Gravity.LEFT);
-            params.setMargins(subActionItems.get(i).x, subActionItems.get(i).y, 0, 0);
-            subActionItems.get(i).view.setLayoutParams(params);
+            Item item = subActionItems.get(i);
+            if (View.INVISIBLE != item.view.getVisibility()) {
+                final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(item.width, item.height, Gravity.TOP | Gravity.LEFT);
+                params.setMargins(item.x, item.y, 0, 0);
+                item.view.setLayoutParams(params);
+            }
         }
     }
 
@@ -354,22 +362,37 @@ public class FloatingActionMenu {
 
         // Prevent overlapping when it is a full circle
         int divisor;
-        if(Math.abs(endAngle - startAngle) >= 360 || subActionItems.size() <= 1) {
-            divisor = subActionItems.size();
+        int size = getVisibleSubActionsCount();
+        if(Math.abs(endAngle - startAngle) >= 360 || size <= 1) {
+            divisor = size;
         }
         else {
-            divisor = subActionItems.size() -1;
+            divisor = size -1;
         }
 
+        int visibleCounter = 0;
         // Measure this path, in order to find points that have the same distance between each other
         for(int i=0; i<subActionItems.size(); i++) {
-            float[] coords = new float[] {0f, 0f};
-            measure.getPosTan((i) * measure.getLength() / divisor, coords, null);
-            // get the x and y values of these points and set them to each of sub action items.
-            subActionItems.get(i).x = (int) coords[0] - subActionItems.get(i).width / 2;
-            subActionItems.get(i).y = (int) coords[1] - subActionItems.get(i).height / 2;
+            Item item = subActionItems.get(i);
+            if (View.INVISIBLE != item.view.getVisibility()) {
+                float[] coords = new float[] {0f, 0f};
+                measure.getPosTan((visibleCounter++) * measure.getLength() / divisor, coords, null);
+                // get the x and y values of these points and set them to each of sub action items.
+                item.x = (int) coords[0] - item.width / 2;
+                item.y = (int) coords[1] - item.height / 2;
+            }
         }
-        return center;
+    }
+
+    private int getVisibleSubActionsCount() {
+        int size = 0;
+        for(int i=0; i<subActionItems.size(); i++) {
+            Item item = subActionItems.get(i);
+            if (View.INVISIBLE != item.view.getVisibility()) {
+                size ++;
+            }
+        }
+        return size;
     }
 
     /**

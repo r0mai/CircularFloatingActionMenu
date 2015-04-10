@@ -154,7 +154,9 @@ public class FloatingActionMenu {
 
         // Get the center of the action view from the following function for efficiency
         // populate destination x,y coordinates of Items
-        Point center = calculateItemPositions();
+        Point center = getActionViewCenter();
+
+        calculateItemPositions();
 
         WindowManager.LayoutParams overlayParams = null;
 
@@ -349,7 +351,7 @@ public class FloatingActionMenu {
      * Calculates the desired positions of all items.
      * @return getActionViewCenter()
      */
-    private Point calculateItemPositions() {
+    private void calculateItemPositions() {
         // Create an arc that starts from startAngle and ends at endAngle
         // in an area that is as large as 4*radius^2
         final Point center = getActionViewCenter();
